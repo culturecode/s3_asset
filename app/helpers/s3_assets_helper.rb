@@ -36,6 +36,6 @@ module S3AssetsHelper
   end
   
   def s3_javascripts
-    content_for(:js) { javascript_include_tag '/plupload/plupload.min.js', '/plupload/plupload.flash.min.js', '/s3_assets/uploader' }
+    content_for(:js) { javascript_include_tag '/plupload/plupload.js', '/plupload/plupload.flash.js', '/s3_assets/uploader' }
   end
 end
