@@ -1,0 +1,159 @@
+$(document).ready(function() {
+    // Counter of number of files still to be uploaded. Used to delay form submission.
+    window.files_uploading_count = 0;
+    
+    // Whether the user has pressed the submit button or not
+    window.form_wants_to_submit = false;
+    
+    // If files are still uploading then save the fact that we want to submit
+    // but delay submission until all files are uploaded.
+    $('form').submit(function() {
+        if (window.files_uploading_count > 0) {
+            window.form_wants_to_submit = true;
+            
+            var submit = $('form').find('input[type=submit]');
+            
+            submit.val(submit.data('submitting')).attr('disabled', 'disabled');
+            
+            return false;
+        } else {
+            return true;
+        }
+    });
+    
+    var multipart_params = {};
+
+    $('.s3_field').each(function(index, input) {
+        multipart_params[input.name] = input.value;
+    });
+
+    var uploader = new plupload.Uploader({
+        runtimes : 'flash',
+        browse_button : 'new_s3_upload_button',
+        url : $('#s3_url').val(),
+        flash_swf_url : '/plupload/plupload.flash.swf',
+        multipart: true,  
+        multipart_params : multipart_params
+    });
+
+    uploader.init();
+    
+    // Make sure we keep the flash shim in the right place when elements are added to the page
+    setInterval(function() {
+        uploader.refresh();
+    }, 500);
+
+    uploader.bind('FilesAdded', function(up, files) {
+        window.files_uploading_count += files.length;        
+        up.start();
+    });
+
+    uploader.bind('BeforeUpload', function(up, file) {
+        
+        var content = $('#' + 's3_upload_fields_template').children().clone();
+        var regexp  = new RegExp('new_s3_upload', 'g');
+        var uid = file.uid = new Date().getTime();
+        
+        // We want to keep all dom values the same, so instead of taking the html of the template,
+        // we manually adjust all for, id, and name attributes
+        content.find("[for], [id], [name]").each(function(index,element) {
+            element = $(element);
+            if (element.attr('for')){
+                element.attr('for', element.attr('for').replace(regexp, uid));
+            }
+            if (element.attr('id')){
+                element.attr('id', element.attr('id').replace(regexp, uid));
+            }
+            if (element.attr('name')){
+                element.attr('name', element.attr('name').replace(regexp, uid));
+            }
+        });
+        
+        $("#s3_upload_container").prepend(content);
+        
+        up.settings.multipart_params['key'] = $('#s3_dir').val() + "/" + file.uid + "/original/${filename}";
+        up.settings.multipart_params['Content-Type'] = determineContentType(file.name); 
+    });
+    
+    uploader.bind('UploadProgress', function(up, file) {
+        $('#s3_upload_' + file.uid + '_content').html(file.percent + "%");   
+    });
+
+    uploader.bind('Error', function(up, err) {
+        console.log("Error: " + err.code + ", Message: " + err.message + (err.file ? ", File: " + err.file.name : ""));
+    });
+
+    uploader.bind('FileUploaded', function(up, file) {
+        $('#s3_upload_attributes_' + file.uid + '_asset_directory').val(file.uid);
+        $('#s3_upload_attributes_' + file.uid + '_asset_name').val(file.name);
+        $('#s3_upload_attributes_' + file.uid + '_asset_content_type').val(determineContentType(file.name));
+        
+        if ($('#s3_uploaded_callback_object_type')) {
+            $('#s3_upload_' + file.uid + '_content').html("Resizing " + file.name + "...");
+            $.post('/s3_assets/asset_uploaded', {object_type: $('#s3_uploaded_callback_object_type').val(), s3_upload: {asset_directory: file.uid, asset_name: file.name, asset_content_type: determineContentType(file.name)}});   
+        } else {
+            $('#s3_upload_' + file.uid + '_content').html("<a href='" + $('#s3_url').val() + $('#s3_dir').val() + "/" + file.uid + "/original/" + file.name + "' target='_blank'>" + file.name + "</a>");
+        }
+        
+        window.files_uploading_count -= 1;
+        
+        if (window.files_uploading_count == 0 && window.form_wants_to_submit == true) {
+            $('form').submit();
+        }
+    });
+});
+
+function determineContentType(fileName) {
+    var extension = getExtension(fileName);
+    var contentType = "application/octet-stream";
+    if ( extension == "txt" ) {
+        contentType= "text/plain";
+    } else if ( extension == "htm" || extension == "html" ) {
+        contentType= "text/html";
+    } else if ( extension == "jpg" || extension == "jpeg" ) {
+        contentType = "image/jpeg";
+    } else if ( extension == "gif" ) {
+        contentType = "image/gif";
+    } else if ( extension == "png" ) {
+        contentType = "image/png";
+    } else if ( extension == "tiff" || extension == "tif" ) {
+        contentType = "image/tiff";
+    } else if ( extension == "mpg" || extension == "mpeg" ) {
+        contentType = "video/mpeg";
+    } else if ( extension == "mp4" ) {
+        contentType = "video/mp4";
+    } else if ( extension == "avi" ) {
+        contentType = "video/avi";
+    } else if ( extension == "mov" ) {
+        contentType = "video/quicktime";
+    } else if ( extension == "flv" ) {
+        contentType = "video/x-flv";
+    } else if ( extension == "wmv") {
+        contentType = "video/x-ms-wmv";
+    } else if ( extension == "mp3" ) {
+        contentType = "audio/mpeg";
+    } else if ( extension == "wav" ) {
+        contentType = "audio/vnd.wave";
+    } else if ( extension == "pdf" ) {
+        contentType = "application/pdf";
+    }
+    
+    return contentType;
+}
+
+function getExtension(fileField) {
+    if (fileField.indexOf('\\') > -1) {
+        fileField = fileField.substring(fileField.lastIndexOf('\\') + 1, fileField.length);
+    }
+    if (fileField.indexOf('/') > -1) {
+        fileField = fileField.substring(fileField.lastIndexOf('/') + 1, fileField.length);
+    }
+
+    var extension;
+    if (fileField.indexOf('.') > -1) {
+        extension = fileField.substring(fileField.lastIndexOf('.') + 1, fileField.length);
+    } else {
+        extension = "";
+    }
+    return extension.toLowerCase();
+}

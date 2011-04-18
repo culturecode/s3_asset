@@ -1,0 +1,13 @@
+(function() {
+var intervalID;
+
+intervalID = window.setInterval(function() {
+    var image = new Image();
+    image.onload = function() {
+        $("#s3_upload_<%= params[:s3_upload][:asset_directory] %>_content").replaceWith(image);
+        window.clearInterval(intervalID);
+    };
+    image.src = "<%= @asset.asset_url(:thumb) %>";
+}, 1000);
+
+})();

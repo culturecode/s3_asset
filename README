@@ -1,0 +1,7 @@
+S3Asset
+=======
+
+Uploads assets directly to S3 using Plupload, then notifies app server immediately.
+
+
+Copyright (c) 2011 Culture Code, released under the MIT license
