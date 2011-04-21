@@ -1,4 +1,4 @@
-class S3AssetsController < ApplicationController
+class S3AssetsController < ActionController::Base
   unloadable
   
   def asset_uploaded
