@@ -3,7 +3,9 @@ module S3Asset
     extend ActiveSupport::Concern
 
     module ClassMethods
-      def acts_as_s3_asset(options = {}); end
+      def acts_as_s3_asset(options = {})
+        before_save :set_asset_created_at if attribute_method?(:asset_created_at)
+      end
       
       def transcode_asset(options = {})
         new(options).transcode_asset
@@ -78,12 +80,25 @@ module S3Asset
         AWS::S3::Base.establish_connection!(:access_key_id => ENV['S3_KEY'], :secret_access_key => ENV['S3_SECRET'])
         image = MiniMagick::Image.open(asset_url)
         
+        if self.class.attribute_method?(:asset_created_at)
+          AssetMetadataCache.create(:asset_directory => asset_directory, :asset_created_at => MiniExiftool.new(image.path).date_time_original)
+        end
+        
         image.resize "800x600"
         image.format "jpg"
         AWS::S3::S3Object.store(store_path(:transcoded), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
         
         image.resize "220x220"
         AWS::S3::S3Object.store(store_path(:thumb), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
+      end
+    end
+    
+    def set_asset_created_at
+      metadata = AssetMetadataCache.find_by_asset_directory(asset_directory)
+      
+      if metadata.present? 
+        self.asset_created_at = metadata.asset_created_at
+        metadata.delete
       end
     end
 

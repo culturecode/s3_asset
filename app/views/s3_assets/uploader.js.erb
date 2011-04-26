@@ -94,12 +94,6 @@ $(document).ready(function() {
         } else {
             $('#s3_upload_' + file.uid + '_content').html("<a href='" + $('#s3_url').val() + $('#s3_dir').val() + "/" + file.uid + "/original/" + file.name + "' target='_blank'>" + file.name + "</a>");
         }
-        
-        window.files_uploading_count -= 1;
-        
-        if (window.files_uploading_count == 0 && window.form_wants_to_submit == true) {
-            $('form').submit();
-        }
     });
 });
 

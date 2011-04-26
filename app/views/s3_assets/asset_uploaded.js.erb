@@ -6,6 +6,12 @@ intervalID = window.setInterval(function() {
     image.onload = function() {
         $("#s3_upload_<%= params[:s3_upload][:asset_directory] %>_content").replaceWith(image);
         window.clearInterval(intervalID);
+        
+        window.files_uploading_count -= 1;
+        
+        if (window.files_uploading_count == 0 && window.form_wants_to_submit == true) {
+            $('form').submit();
+        }
     };
     image.src = "<%= @asset.asset_url(:thumb) %>";
 }, 1000);
