@@ -4,7 +4,7 @@ module S3Asset
 
     module ClassMethods
       def acts_as_s3_asset(options = {})
-        before_save :set_asset_created_at if attribute_method?(:asset_created_at)
+        before_create :set_asset_created_at if attribute_method?(:asset_created_at)
       end
       
       def transcode_asset(options = {})
