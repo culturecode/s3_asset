@@ -86,10 +86,11 @@ $(document).ready(function() {
     uploader.bind('FileUploaded', function(up, file) {
         $('#s3_upload_attributes_' + file.uid + '_asset_directory').val(file.uid);
         $('#s3_upload_attributes_' + file.uid + '_asset_name').val(file.name);
+        $('#s3_' + file.uid + '_asset_name').html(file.name);
         $('#s3_upload_attributes_' + file.uid + '_asset_content_type').val(determineContentType(file.name));
         
         if ($('#s3_uploaded_callback_object_type')) {
-            $('#s3_upload_' + file.uid + '_content').html("Resizing " + file.name + "...");
+            $('#s3_upload_' + file.uid + '_content').html("Resizing...");
             $.post('/s3_assets/asset_uploaded', {object_type: $('#s3_uploaded_callback_object_type').val(), s3_upload: {asset_directory: file.uid, asset_name: file.name, asset_content_type: determineContentType(file.name)}});   
         } else {
             $('#s3_upload_' + file.uid + '_content').html("<a href='" + $('#s3_url').val() + $('#s3_dir').val() + "/" + file.uid + "/original/" + file.name + "' target='_blank'>" + file.name + "</a>");
