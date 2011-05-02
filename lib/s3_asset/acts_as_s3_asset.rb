@@ -88,7 +88,19 @@ module S3Asset
         image.format "jpg"
         AWS::S3::S3Object.store(store_path(:transcoded), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
         
-        image.resize "220x220"
+        width, height = 220, 220
+        cols, rows = image[:dimensions]
+        image.combine_options do |cmd|
+          if width != cols || height != rows
+            scale = [width/cols.to_f, height/rows.to_f].max
+            cols  = (scale * (cols + 0.5)).round
+            rows  = (scale * (rows + 0.5)).round
+            cmd.resize "#{cols}x#{rows}"
+          end
+          cmd.gravity 'Center'
+          cmd.extent "#{width}x#{height}" if cols != width || rows != height
+        end
+        
         AWS::S3::S3Object.store(store_path(:thumb), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
       end
     end
