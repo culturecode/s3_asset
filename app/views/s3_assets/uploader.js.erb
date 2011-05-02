@@ -30,6 +30,8 @@ $(document).ready(function() {
     var uploader = new plupload.Uploader({
         runtimes : 'flash',
         browse_button : 'new_s3_upload_button',
+        button_browse_hover: "button_browse_hover",
+        button_browse_active: "button_browse_active",
         url : $('#s3_url').val(),
         flash_swf_url : '/plupload/plupload.flash.swf',
         multipart: true,  
