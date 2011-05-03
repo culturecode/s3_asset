@@ -4,6 +4,8 @@ module S3Asset
 
     module ClassMethods
       def acts_as_s3_asset(options = {})
+        options.reverse_merge!(:crop => true)
+        
         cattr_accessor :asset_options
         self.asset_options = options
         
