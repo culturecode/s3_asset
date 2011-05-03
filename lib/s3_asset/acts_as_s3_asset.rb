@@ -4,6 +4,9 @@ module S3Asset
 
     module ClassMethods
       def acts_as_s3_asset(options = {})
+        cattr_accessor :asset_options
+        self.asset_options = options
+        
         before_create :set_asset_created_at if attribute_method?(:asset_created_at)
       end
       
@@ -88,17 +91,21 @@ module S3Asset
         image.format "jpg"
         AWS::S3::S3Object.store(store_path(:transcoded), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
         
-        width, height = 220, 220
-        cols, rows = image[:dimensions]
-        image.combine_options do |cmd|
-          if width != cols || height != rows
-            scale = [width/cols.to_f, height/rows.to_f].max
-            cols  = (scale * (cols + 0.5)).round
-            rows  = (scale * (rows + 0.5)).round
-            cmd.resize "#{cols}x#{rows}"
+        if self.class.asset_options[:crop] == true
+          width, height = 220, 220
+          cols, rows = image[:dimensions]
+          image.combine_options do |cmd|
+            if width != cols || height != rows
+              scale = [width/cols.to_f, height/rows.to_f].max
+              cols  = (scale * (cols + 0.5)).round
+              rows  = (scale * (rows + 0.5)).round
+              cmd.resize "#{cols}x#{rows}"
+            end
+            cmd.gravity 'Center'
+            cmd.extent "#{width}x#{height}" if cols != width || rows != height
           end
-          cmd.gravity 'Center'
-          cmd.extent "#{width}x#{height}" if cols != width || rows != height
+        else
+          image.resize "220x220"
         end
         
         AWS::S3::S3Object.store(store_path(:thumb), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
