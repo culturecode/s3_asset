@@ -74,7 +74,7 @@ $(document).ready(function() {
         $("#s3_upload_container").prepend(content);
         
         up.settings.multipart_params['key'] = $('#s3_dir').val() + "/" + file.uid + "/original/${filename}";
-        up.settings.multipart_params['Content-Type'] = determineContentType(file.name); 
+        up.settings.multipart_params['Content-Type'] = determineContentType(file.name);
     });
     
     uploader.bind('UploadProgress', function(up, file) {
@@ -92,7 +92,7 @@ $(document).ready(function() {
         $('#s3_upload_attributes_' + file.uid + '_asset_content_type').val(determineContentType(file.name));
         
         if ($('#s3_uploaded_callback_object_type')) {
-            $('#s3_upload_' + file.uid + '_content').html("Resizing...");
+            $('#s3_upload_' + file.uid + '_content').html("").addClass("resizing");
             $.post('/s3_assets/asset_uploaded', {object_type: $('#s3_uploaded_callback_object_type').val(), s3_upload: {asset_directory: file.uid, asset_name: file.name, asset_content_type: determineContentType(file.name)}});   
         } else {
             $('#s3_upload_' + file.uid + '_content').html("<a href='" + $('#s3_url').val() + $('#s3_dir').val() + "/" + file.uid + "/original/" + file.name + "' target='_blank'>" + file.name + "</a>");

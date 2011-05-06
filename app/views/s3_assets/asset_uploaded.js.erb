@@ -13,6 +13,7 @@ intervalID = window.setInterval(function() {
             $('form').submit();
         }
     };
+    image.title = "<%= @asset.asset_name %>";
     image.src = "<%= @asset.asset_url(:thumb) %>";
 }, 1000);
 

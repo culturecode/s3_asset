@@ -26,6 +26,8 @@ module S3Asset
       # Special case of one size fits all audio thumbnail
       url = if audio? && size == :thumb
         "/images/audio_thumb.png"
+      elsif !(video? || audio? || image?) && size == :thumb
+        "/images/file_thumb.png"
       else
         "#{S3_URL}#{store_path(size)}"
       end
@@ -46,11 +48,10 @@ module S3Asset
       if size == :original
         self.asset_name
 
-        # Special case of video thumbnails created by Zencoder
+      # Special case of video thumbnails created by Zencoder
       elsif video? && size == :thumb
         "frame_0000.jpg"
-
-        # Regular case
+      # Regular case
       else
         name_without_extension = File.basename(self.asset_name, File.extname(self.asset_name))
         original_extension = File.extname(self.asset_name)[1..-1]
@@ -94,18 +95,7 @@ module S3Asset
         AWS::S3::S3Object.store(store_path(:transcoded), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
         
         if self.class.asset_options[:crop] == true
-          width, height = 220, 220
-          cols, rows = image[:dimensions]
-          image.combine_options do |cmd|
-            if width != cols || height != rows
-              scale = [width/cols.to_f, height/rows.to_f].max
-              cols  = (scale * (cols + 0.5)).round
-              rows  = (scale * (rows + 0.5)).round
-              cmd.resize "#{cols}x#{rows}"
-            end
-            cmd.gravity 'Center'
-            cmd.extent "#{width}x#{height}" if cols != width || rows != height
-          end
+         crop_resized(image, 220, 220)
         else
           image.resize "220x220"
         end
@@ -134,6 +124,36 @@ module S3Asset
     def image?
       asset_content_type =~ /image/
     end
+    
+    # Scale an image down and crop away any extra to achieve a certain size.
+    # This is handy for creating thumbnails of the same dimensions without
+    # changing the aspect ratio.
+    def crop_resized(image, width, height, gravity = "Center")
+      width = width.to_i
+      height = height.to_i
+
+      # Grab the width and height of the current image in one go.
+      cols, rows = image[:dimensions]
+      
+      # Only do anything if needs be. Who knows, maybe it's already the exact
+      # dimensions we're looking for.
+      if(width != cols && height != rows)
+        image.combine_options do |c|
+          # Scale the image down to the widest dimension.
+          if(width != cols || height != rows)
+            scale = [width / cols.to_f, height / rows.to_f].max * 100
+            c.resize("#{scale}%")
+          end
+
+          # Align how things will be cropped.
+          c.gravity(gravity)
+
+          # Crop the image to size.
+          c.crop("#{width}x#{height}+0+0")
+        end
+      end
+    end
+    
   end
 end
 
