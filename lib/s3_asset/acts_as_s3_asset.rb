@@ -24,15 +24,13 @@ module S3Asset
 
     def asset_url(size = :original)
       # Special case of one size fits all audio thumbnail
-      url = if audio? && size == :thumb
+      if audio? && size == :thumb
         "/images/audio_thumb.png"
       elsif !(video? || audio? || image?) && size == :thumb
         "/images/file_thumb.png"
       else
         "#{S3_URL}#{store_path(size)}"
       end
-
-      URI.escape(url)
     end
 
     def store_path(size = :original)
@@ -68,7 +66,7 @@ module S3Asset
 
         extension = extension_hash[size] || original_extension
 
-        "#{name_without_extension}.#{extension}"
+        URI.escape("#{name_without_extension}.#{extension}")
       end
     end
 
