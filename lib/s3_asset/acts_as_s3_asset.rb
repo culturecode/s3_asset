@@ -43,7 +43,7 @@ module S3Asset
 
     def asset_with_extension(size = :original)
       # Use original extension for original size
-      if size == :original
+      unescaped_name = if size == :original
         self.asset_name
 
       # Special case of video thumbnails created by Zencoder
@@ -66,8 +66,10 @@ module S3Asset
 
         extension = extension_hash[size] || original_extension
 
-        URI.escape("#{name_without_extension}.#{extension}")
+        "#{name_without_extension}.#{extension}"
       end
+      
+      URI.escape(unescaped_name)
     end
 
     def transcode_asset
