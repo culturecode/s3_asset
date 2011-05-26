@@ -43,7 +43,7 @@ module S3Asset
 
     def asset_with_extension(size = :original)
       # Use original extension for original size
-      unescaped_name = if size == :original
+      if size == :original
         self.asset_name
 
       # Special case of video thumbnails created by Zencoder
@@ -68,8 +68,6 @@ module S3Asset
 
         "#{name_without_extension}.#{extension}"
       end
-      
-      URI.escape(unescaped_name)
     end
 
     def transcode_asset
@@ -84,7 +82,9 @@ module S3Asset
         Zencoder::Job.create(:input => asset_url, :output => {:public => 1, :url => asset_url(:transcoded)})
       elsif image?
         AWS::S3::Base.establish_connection!(:access_key_id => ENV['S3_KEY'], :secret_access_key => ENV['S3_SECRET'])
-        image = MiniMagick::Image.open(asset_url)
+        
+        # Need to escape because it doesn't do it automatically
+        image = MiniMagick::Image.open(URI.escape(asset_url))
         
         if self.class.attribute_method?(:asset_created_at)
           AssetMetadataCache.create(:asset_directory => asset_directory, :asset_created_at => MiniExiftool.new(image.path).date_time_original)
