@@ -8,6 +8,8 @@ module S3Asset
         
         cattr_accessor :asset_options
         self.asset_options = options
+
+        scope :asset_type, lambda {|type| where("SUBSTRING(asset_content_type FROM '.+(?=/)') = '#{sanitize_sql(type)}'") if type.present? }        
         
         before_create :set_asset_created_at if attribute_method?(:asset_created_at)
       end
