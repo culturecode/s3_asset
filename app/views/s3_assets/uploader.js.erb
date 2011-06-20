@@ -133,6 +133,10 @@ function determineContentType(fileName) {
         contentType = "audio/vnd.wave";
     } else if ( extension == "pdf" ) {
         contentType = "application/pdf";
+	} else if ( extension == "kml" ) {
+		contentType = "application/vnd.google-earth.kml+xml";
+    } else if ( extension == "kmz" ) {
+		contentType = "application/vnd.google-earth.kmz";
     }
     
     return contentType;

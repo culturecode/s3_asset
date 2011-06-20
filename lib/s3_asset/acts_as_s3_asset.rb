@@ -125,6 +125,10 @@ module S3Asset
       asset_content_type =~ /image/
     end
     
+    def map?
+      asset_content_type =~ /google-earth/
+    end
+    
     # Scale an image down and crop away any extra to achieve a certain size.
     # This is handy for creating thumbnails of the same dimensions without
     # changing the aspect ratio.
