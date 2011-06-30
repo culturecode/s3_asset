@@ -71,7 +71,7 @@ $(document).ready(function() {
             }
         });
         
-        $("#s3_upload_container").prepend(content);
+        $("#s3_upload_container").append(content);
         
         up.settings.multipart_params['key'] = $('#s3_dir').val() + "/" + file.uid + "/original/${filename}";
         up.settings.multipart_params['Content-Type'] = determineContentType(file.name);
