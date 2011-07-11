@@ -83,7 +83,7 @@ module S3Asset
       elsif audio?
         Zencoder::Job.create(:input => asset_url, :output => {:public => 1, :url => asset_url(:transcoded)})
       elsif image?
-        AWS::S3::Base.establish_connection!(:access_key_id => ENV['S3_KEY'], :secret_access_key => ENV['S3_SECRET'])
+        s3_bucket = RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET'])
         
         # Need to escape because it doesn't do it automatically
         image = MiniMagick::Image.open(URI.escape(asset_url))
@@ -94,7 +94,10 @@ module S3Asset
         
         image.resize "800x600"
         image.format "jpg"
-        AWS::S3::S3Object.store(store_path(:transcoded), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
+        image.quality 90
+        image.sampling_factor "2x1"
+        
+        s3_bucket.put(store_path(:transcoded), open(image.path), {}, 'public-read')
         
         if self.class.asset_options[:crop] == true
          crop_resized(image, 220, 220)
@@ -102,7 +105,7 @@ module S3Asset
           image.resize "220x220"
         end
         
-        AWS::S3::S3Object.store(store_path(:thumb), open(image.path), ENV['S3_BUCKET'], :access => :public_read)
+        s3_bucket.put(store_path(:thumb), open(image.path), {}, 'public-read')
       end
     end
     
