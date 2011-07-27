@@ -21,84 +21,72 @@ $(document).ready(function() {
         }
     });
     
-    var multipart_params = {};
+    window.multipart_params = {};
 
     $('.s3_field').each(function(index, input) {
-        multipart_params[input.name] = input.value;
-    });
-
-    var uploader = new plupload.Uploader({
-        runtimes : 'flash',
-        browse_button : 'new_s3_upload_button',
-        button_browse_hover: "button_browse_hover",
-        button_browse_active: "button_browse_active",
-        url : $('#s3_url').val(),
-        flash_swf_url : '/plupload/plupload.flash.swf',
-        multipart: true,  
-        multipart_params : multipart_params
-    });
-
-    uploader.init();
-    
-    // Make sure we keep the flash shim in the right place when elements are added to the page
-    setInterval(function() {
-        uploader.refresh();
-    }, 500);
-
-    uploader.bind('FilesAdded', function(up, files) {
-        window.files_uploading_count += files.length;        
-        up.start();
-    });
-
-    uploader.bind('BeforeUpload', function(up, file) {
-        
-        var content = $('#' + 's3_upload_fields_template').children().clone();
-        var regexp  = new RegExp('new_s3_upload', 'g');
-        var uid = file.uid = new Date().getTime();
-        
-        // We want to keep all dom values the same, so instead of taking the html of the template,
-        // we manually adjust all for, id, and name attributes
-        content.find("[for], [id], [name]").each(function(index,element) {
-            element = $(element);
-            if (element.attr('for')){
-                element.attr('for', element.attr('for').replace(regexp, uid));
-            }
-            if (element.attr('id')){
-                element.attr('id', element.attr('id').replace(regexp, uid));
-            }
-            if (element.attr('name')){
-                element.attr('name', element.attr('name').replace(regexp, uid));
-            }
-        });
-        
-        $("#s3_upload_container").append(content);
-        
-        up.settings.multipart_params['key'] = $('#s3_dir').val() + "/" + file.uid + "/original/${filename}";
-        up.settings.multipart_params['Content-Type'] = determineContentType(file.name);
+        window.multipart_params[input.name] = input.value;
     });
     
-    uploader.bind('UploadProgress', function(up, file) {
-        $('#s3_upload_' + file.uid + '_content').html(file.percent + "%");   
-    });
-
-    uploader.bind('Error', function(up, err) {
-        console.log("Error: " + err.code + ", Message: " + err.message + (err.file ? ", File: " + err.file.name : ""));
-    });
-
-    uploader.bind('FileUploaded', function(up, file) {
-        $('#s3_upload_attributes_' + file.uid + '_asset_directory').val(file.uid);
-        $('#s3_upload_attributes_' + file.uid + '_asset_name').val(file.name);
-        $('#s3_' + file.uid + '_asset_name').html(file.name);
-        $('#s3_upload_attributes_' + file.uid + '_asset_content_type').val(determineContentType(file.name));
-        
-        if ($('#s3_uploaded_callback_object_type')) {
-            $('#s3_upload_' + file.uid + '_content').html("").addClass("resizing");
-            $.post('/s3_assets/asset_uploaded', {object_type: $('#s3_uploaded_callback_object_type').val(), s3_upload: {asset_directory: file.uid, asset_name: file.name, asset_content_type: determineContentType(file.name)}});   
-        } else {
-            $('#s3_upload_' + file.uid + '_content').html("<a href='" + $('#s3_url').val() + $('#s3_dir').val() + "/" + file.uid + "/original/" + file.name + "' target='_blank'>" + file.name + "</a>");
-        }
-    });
+    if (document.getElementById('new_s3_upload_button')) {
+      initializeUploader('new_s3_upload_button');
+    }
 });
+
+function initializeUploader(buttonName) {
+  
+  var uploader = new plupload.Uploader({
+      runtimes : 'flash',
+      browse_button : buttonName,
+      button_browse_hover: "button_browse_hover",
+      button_browse_active: "button_browse_active",
+      url : $('#s3_url').val(),
+      flash_swf_url : '/plupload/plupload.flash.swf',
+      multipart: true,  
+      multipart_params : window.multipart_params
+  });
+
+  uploader.init();
+  
+  // Make sure we keep the flash shim in the right place when elements are added to the page
+  setInterval(function() {
+      uploader.refresh();
+  }, 500);
+
+  uploader.bind('FilesAdded', function(up, files) {
+      window.files_uploading_count += files.length;        
+      up.start();
+  });
+
+  uploader.bind('BeforeUpload', function(up, file) {
+      file.uid = new Date().getTime();
+      $('#' + up.settings.browse_button).trigger({type: 'click', new_id: file.uid});
+      
+      up.settings.multipart_params['key'] = $('#s3_dir').val() + "/" + file.uid + "/original/${filename}";
+      up.settings.multipart_params['Content-Type'] = determineContentType(file.name);
+  });
+  
+  uploader.bind('UploadProgress', function(up, file) {
+      $('[id$=' + file.uid + '_content]').html(file.percent + "%");   
+  });
+
+  uploader.bind('Error', function(up, err) {
+      console.log("Error: " + err.code + ", Message: " + err.message + (err.file ? ", File: " + err.file.name : ""));
+  });
+
+  uploader.bind('FileUploaded', function(up, file) {
+      $('[id$=' + file.uid + '_asset_directory]').val(file.uid);
+      $('[id$=' + file.uid + '_asset_name]').val(file.name);
+      $('[id$=' + file.uid + '_visible_asset_name]').html(file.name);
+      $('[id$=' + file.uid + '_asset_content_type]').val(determineContentType(file.name));
+      
+      if ($('#s3_uploaded_callback_object_type')) {
+          $('[id$=' + file.uid + '_content]').html("").addClass("resizing");
+          $.post('/s3_assets/asset_uploaded', {object_type: $('#s3_uploaded_callback_object_type').val(), s3_upload: {asset_directory: file.uid, asset_name: file.name, asset_content_type: determineContentType(file.name)}});   
+      } else {
+          $('[id$=' + file.uid + '_content]').html("<a href='" + $('#s3_url').val() + $('#s3_dir').val() + "/" + file.uid + "/original/" + file.name + "' target='_blank'>" + file.name + "</a>");
+      }
+  });
+}
 
 function determineContentType(fileName) {
     var extension = getExtension(fileName);

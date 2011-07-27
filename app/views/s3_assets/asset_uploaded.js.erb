@@ -4,7 +4,7 @@ var intervalID;
 intervalID = window.setInterval(function() {
     var image = new Image();
     image.onload = function() {
-        $("#s3_upload_<%= params[:s3_upload][:asset_directory] %>_content").replaceWith(image);
+        $("[id$=<%= params[:s3_upload][:asset_directory] %>_content]").replaceWith(image);
         window.clearInterval(intervalID);
         
         window.files_uploading_count -= 1;
