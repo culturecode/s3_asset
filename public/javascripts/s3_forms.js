@@ -1,3 +1,9 @@
+$('form.s3').live('nested:fieldAdded', function(e) {
+  $(e.field).find('[id$=s3_upload_button]').each(function() {
+    initializeUploader(this.id);
+  });
+});
+
 $('form a.add_child').live('click', function(e) {
     var assoc   = $(this).attr('data-association');
     var content = $('#' + assoc + '_fields_template').html();
