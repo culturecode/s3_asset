@@ -1,3 +1,8 @@
+require 'right_aws'
+require 'mini_magick'
+require 'mini_exiftool'
+require 'zencoder'
+
 require 's3_asset/engine'
 require 's3_asset/acts_as_s3_asset'
 

@@ -7,6 +7,10 @@ namespace :s3_asset do
     puts command
     system(command)
     
+    command = "cp -R #{s3_assets}/public/javascripts/ #{Rails.root}/public/javascripts/"
+    puts command
+    system(command)
+    
     command = "rsync -ruv #{s3_assets}/db/migrate #{Rails.root}/db"
     puts command
     system(command)

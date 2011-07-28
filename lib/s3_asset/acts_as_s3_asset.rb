@@ -49,7 +49,7 @@ module S3Asset
         self.asset_name
 
       # Special case of video thumbnails created by Zencoder
-      elsif video? && size == :thumb
+      elsif video? && (size == :thumb || size == :poster)
         "frame_0000.jpg"
       # Regular case
       else
@@ -79,7 +79,9 @@ module S3Asset
                                          :width => '640', 
                                          :height => '480', 
                                          :url => asset_url(:transcoded), 
-                                         :thumbnails => {:number => 1, :format => 'jpg', :aspect_mode => "crop", :size => "220x220", :base_url => S3_URL + store_dir(:thumb)}})
+                                         :thumbnails => [{:number => 1, :format => 'jpg', :aspect_mode => "crop", :size => thumbnail_size, :base_url => S3_URL + store_dir(:thumb)},
+                                                         {:number => 1, :format => 'jpg', :size => "640x480", :base_url => S3_URL + store_dir(:poster)}]
+                                         })
       elsif audio?
         Zencoder::Job.create(:input => asset_url, :output => {:public => 1, :url => asset_url(:transcoded)})
       elsif image?
@@ -100,9 +102,33 @@ module S3Asset
         s3_bucket.put(store_path(:transcoded), open(image.path), {}, 'public-read')
         
         if self.class.asset_options[:crop] == true
-         crop_resized(image, 220, 220)
+         crop_resized(image, thumbnail_size)
         else
-          image.resize "220x220"
+          image.resize thumbnail_size
+        end
+        
+        s3_bucket.put(store_path(:thumb), open(image.path), {}, 'public-read')
+      end
+    end
+    
+    def resize_thumbnails
+      if image?
+        s3_bucket = RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET'])
+        
+        # Need to escape because it doesn't do it automatically
+        image = MiniMagick::Image.open(URI.escape(asset_url(:transcoded)))
+        
+        image.resize "800x600"
+        image.format "jpg"
+        image.quality 90
+        image.sampling_factor "2x1"
+        
+        s3_bucket.put(store_path(:transcoded), open(image.path), {}, 'public-read')
+        
+        if self.class.asset_options[:crop] == true
+         crop_resized(image, thumbnail_size)
+        else
+          image.resize thumbnail_size
         end
         
         s3_bucket.put(store_path(:thumb), open(image.path), {}, 'public-read')
@@ -134,12 +160,19 @@ module S3Asset
       asset_content_type =~ /google-earth/
     end
     
+    private
+    
+    def thumbnail_size 
+      self.class.asset_options[:thumbnail_size] || '300x300'
+    end
+    
     # Scale an image down and crop away any extra to achieve a certain size.
     # This is handy for creating thumbnails of the same dimensions without
     # changing the aspect ratio.
-    def crop_resized(image, width, height, gravity = "Center")
-      width = width.to_i
-      height = height.to_i
+    def crop_resized(image, size, gravity = "Center")
+      size =~ /(\d+)x(\d+)/
+      width = $1.to_i
+      height = $2.to_i
 
       # Grab the width and height of the current image in one go.
       cols, rows = image[:dimensions]

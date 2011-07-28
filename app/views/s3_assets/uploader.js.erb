@@ -27,9 +27,9 @@ $(document).ready(function() {
         window.multipart_params[input.name] = input.value;
     });
     
-    if (document.getElementById('new_s3_upload_button')) {
-      initializeUploader('new_s3_upload_button');
-    }
+    $('.s3_upload_button').each(function(index, input) {
+        initializeUploader(input.id);
+    });
 });
 
 function initializeUploader(buttonName) {
