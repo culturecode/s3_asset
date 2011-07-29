@@ -1,9 +1,9 @@
 module S3FormHelper
-  def add_child_link(f, name, association, options = {}, html_options = {})
+  def add_child_link(f, name, association, html_options = {}, options = {})
     html_options[:class] = "add_child edit #{html_options[:class]}"
 
     new_child_fields_template(f, association) unless options[:template] == false
-    link_to(name, "javascript:void(0)", html_options.merge(:"data-association" => association, :"data-position" => options[:position] || :after))
+    link_to(name, "javascript:void(0)", html_options.merge(:"data-association" => association))
   end
 
   def remove_child_link(f, name = t('remove'))
