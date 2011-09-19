@@ -74,67 +74,68 @@ module S3Asset
 
     def transcode_asset
       if video?
+        aspect_mode = if self.class.asset_options[:pad]
+          "pad"
+        elsif self.class.asset_options[:crop]
+          "crop"
+        else
+          "preserve"
+        end
+        
         Zencoder::Job.create(:input => asset_url, 
                              :output => {:public => 1,
                                          :width => '640', 
                                          :height => '480', 
                                          :url => asset_url(:transcoded), 
-                                         :thumbnails => [{:number => 1, :format => 'jpg', :aspect_mode => (self.class.asset_options[:crop] ? "crop" : "preserve"), :size => thumbnail_size, :base_url => S3_URL + store_dir(:thumb)},
+                                         :thumbnails => [{:number => 1, :format => 'jpg', :aspect_mode => aspect_mode, :size => thumbnail_size, :base_url => S3_URL + store_dir(:thumb)},
                                                          {:number => 1, :format => 'jpg', :size => "640x480", :base_url => S3_URL + store_dir(:poster)}]
                                          })
       elsif audio?
         Zencoder::Job.create(:input => asset_url, :output => {:public => 1, :url => asset_url(:transcoded)})
       elsif image?
         s3_bucket = RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET'])
-        
+
         # Need to escape because it doesn't do it automatically
         image = MiniMagick::Image.open(URI.escape(asset_url))
-        
-        if self.class.attribute_method?(:asset_created_at)
-          AssetMetadataCache.create(:asset_directory => asset_directory, :asset_created_at => MiniExiftool.new(image.path).date_time_original)
-        end
-        
+
         image.resize "800x600"
         image.format "jpg"
         image.quality 90
         image.sampling_factor "2x1"
-        
+
         s3_bucket.put(store_path(:transcoded), open(image.path), {}, 'public-read')
         
-        if self.class.asset_options[:crop] == true
-         crop_resized(image, thumbnail_size)
-        else
-          image.resize thumbnail_size
-        end
+        resize_thumbnail(s3_bucket, image)
         
-        s3_bucket.put(store_path(:thumb), open(image.path), {}, 'public-read')
+        if self.class.attribute_method?(:asset_created_at)
+          AssetMetadataCache.create(:asset_directory => asset_directory, :asset_created_at => MiniExiftool.new(image.path).date_time_original)
+        end
       end
     end
     
     def resize_thumbnails
       if image?
         s3_bucket = RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET'])
-        
+
         # Need to escape because it doesn't do it automatically
         image = MiniMagick::Image.open(URI.escape(asset_url(:transcoded)))
         
-        image.resize "800x600"
-        image.format "jpg"
-        image.quality 90
-        image.sampling_factor "2x1"
-        
-        s3_bucket.put(store_path(:transcoded), open(image.path), {}, 'public-read')
-        
-        if self.class.asset_options[:crop] == true
-         crop_resized(image, thumbnail_size)
-        else
-          image.resize thumbnail_size
-        end
-        
-        s3_bucket.put(store_path(:thumb), open(image.path), {}, 'public-read')
+        resize_thumbnail(s3_bucket, image)
       end
     end
     
+    def resize_thumbnail(s3_bucket, image)
+      if self.class.asset_options[:pad] == true
+        crop_padded(image, thumbnail_size)
+      elsif self.class.asset_options[:crop] == true
+       crop_resized(image, thumbnail_size)
+      else
+        image.resize thumbnail_size
+      end
+      
+      s3_bucket.put(store_path(:thumb), open(image.path), {}, 'public-read')
+    end
+
     def set_asset_created_at
       metadata = AssetMetadataCache.find_by_asset_directory(asset_directory)
       
@@ -164,6 +165,15 @@ module S3Asset
     
     def thumbnail_size 
       self.class.asset_options[:thumbnail_size] || '300x300'
+    end
+
+    def crop_padded(image, size)
+      image.combine_options do |c|
+        c.resize size
+        c.background self.class.asset_options[:background] || "white"
+        c.extent size
+        c.gravity "Center"
+      end
     end
     
     # Scale an image down and crop away any extra to achieve a certain size.
