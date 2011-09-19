@@ -79,7 +79,7 @@ module S3Asset
                                          :width => '640', 
                                          :height => '480', 
                                          :url => asset_url(:transcoded), 
-                                         :thumbnails => [{:number => 1, :format => 'jpg', :aspect_mode => "crop", :size => thumbnail_size, :base_url => S3_URL + store_dir(:thumb)},
+                                         :thumbnails => [{:number => 1, :format => 'jpg', :aspect_mode => (self.class.asset_options[:crop] ? "crop" : "preserve"), :size => thumbnail_size, :base_url => S3_URL + store_dir(:thumb)},
                                                          {:number => 1, :format => 'jpg', :size => "640x480", :base_url => S3_URL + store_dir(:poster)}]
                                          })
       elsif audio?
