@@ -87,8 +87,8 @@ module S3Asset
                                          :width => '640', 
                                          :height => '480', 
                                          :url => asset_url(:transcoded), 
-                                         :thumbnails => [{:number => 1, :format => 'jpg', :aspect_mode => aspect_mode, :size => thumbnail_size, :base_url => S3_URL + store_dir(:thumb)},
-                                                         {:number => 1, :format => 'jpg', :size => "640x480", :base_url => S3_URL + store_dir(:poster)}]
+                                         :thumbnails => [{:number => 1, :format => 'jpg', :label => "thumb", :aspect_mode => aspect_mode, :size => thumbnail_size, :base_url => S3_URL + store_dir(:thumb)},
+                                                         {:number => 1, :format => 'jpg', :label => "poster", :size => "640x480", :base_url => S3_URL + store_dir(:poster)}]
                                          })
       elsif audio?
         Zencoder::Job.create(:input => asset_url, :output => {:public => 1, :url => asset_url(:transcoded)})
