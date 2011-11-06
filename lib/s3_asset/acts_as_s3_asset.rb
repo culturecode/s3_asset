@@ -24,26 +24,26 @@ module S3Asset
       asset_directory.present? && asset_name.present?
     end
 
-    def asset_url(size = :original)
+    def asset_url(size = :original, options = {})
       # Special case of one size fits all audio thumbnail
       if audio? && size == :thumb
         "/images/audio_thumb.png"
       elsif !(video? || audio? || image?) && size == :thumb
         "/images/file_thumb.png"
       else
-        "#{S3_URL}#{store_path(size)}"
+        "#{S3_URL}#{store_path(size, options)}"
       end
     end
 
-    def store_path(size = :original)
-      "#{store_dir(size)}/#{asset_with_extension(size)}"
+    def store_path(size = :original, options = {})
+      "#{store_dir(size)}/#{asset_with_extension(size, options)}"
     end
 
     def store_dir(size)
       "#{self.class.table_name}/#{self.asset_directory}/#{size}"
     end
 
-    def asset_with_extension(size = :original)
+    def asset_with_extension(size = :original, options = {})
       # Use original extension for original size
       if size == :original
         self.asset_name
@@ -67,7 +67,10 @@ module S3Asset
         end
 
         extension = extension_hash[size] || original_extension
-
+        
+        # If the encode option is passed, double escape the filename because jwplayer requires this to play videos with Chinese characters in their filename
+        name_without_extension = CGI.escape(CGI.escape(name_without_extension)) if options[:encode]
+        
         "#{name_without_extension}.#{extension}"
       end
     end
@@ -128,7 +131,7 @@ module S3Asset
       if self.class.asset_options[:pad] == true
         crop_padded(image, thumbnail_size)
       elsif self.class.asset_options[:crop] == true
-       crop_resized(image, thumbnail_size)
+        crop_resized(image, thumbnail_size)
       else
         image.resize thumbnail_size
       end
