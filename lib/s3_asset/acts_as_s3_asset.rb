@@ -46,7 +46,7 @@ module S3Asset
     def asset_with_extension(size = :original, options = {})
       # Use original extension for original size
       if size == :original
-        CGI.escape(self.asset_name)
+        options[:encode] ? CGI.escape(self.asset_name) : self.asset_name
 
       # Special case of video thumbnails created by Zencoder
       elsif video? && (size == :thumb || size == :poster)
@@ -68,10 +68,12 @@ module S3Asset
 
         extension = extension_hash[size] || original_extension
 
-        # If the encode option is passed, double escape the filename because jwplayer requires this to play videos with Chinese characters in their filename
         name_without_extension = CGI.escape(name_without_extension) if options[:encode]
 
-        CGI.escape("#{name_without_extension}.#{extension}")
+        # If the encode option is passed, double escape the filename because jwplayer requires this to play videos with Chinese characters in their filename
+        name_without_extension = CGI.escape(CGI.escape(name_without_extension)) if options[:double_encode]
+
+        "#{name_without_extension}.#{extension}"
       end
     end
 
