@@ -105,7 +105,7 @@ module S3Asset
         image.quality 90
         image.sampling_factor "2x1"
 
-        s3_bucket.put(store_path(:transcoded), open(image.path), {}, 'public-read')
+        s3_bucket.put(CGI.unescape(store_path(:transcoded)), open(image.path), {}, 'public-read')
 
         resize_thumbnail(s3_bucket, image)
 
@@ -134,7 +134,7 @@ module S3Asset
         image.resize thumbnail_size
       end
 
-      s3_bucket.put(store_path(:thumb), open(image.path), {}, 'public-read')
+      s3_bucket.put(CGI.unescape(store_path(:thumb)), open(image.path), {}, 'public-read')
     end
 
     def set_asset_created_at
