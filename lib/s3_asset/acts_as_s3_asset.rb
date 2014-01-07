@@ -98,8 +98,7 @@ module S3Asset
       elsif image?
         s3_bucket = RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET'])
 
-        # Need to escape because it doesn't do it automatically
-        image = MiniMagick::Image.open(URI.escape(asset_url))
+        image = MiniMagick::Image.open(asset_url)
 
         image.resize "800x600"
         image.format "jpg"
@@ -120,8 +119,7 @@ module S3Asset
       if image?
         s3_bucket = RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET'])
 
-        # Need to escape because it doesn't do it automatically
-        image = MiniMagick::Image.open(URI.escape(asset_url(:transcoded)))
+        image = MiniMagick::Image.open(asset_url(:transcoded))
 
         resize_thumbnail(s3_bucket, image)
       end
