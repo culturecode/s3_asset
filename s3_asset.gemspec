@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.authors = ['Ryan Wallace', 'Nicholas Jakobsen']
 
   s.add_dependency('right_aws')
-  s.add_dependency('mini_magick', '~> 3.3')
+  s.add_dependency('mini_magick', '= 3.3')
   s.add_dependency('mini_exiftool')
   s.add_dependency('zencoder')
 end
