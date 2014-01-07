@@ -5,20 +5,20 @@ module S3Asset
     module ClassMethods
       def acts_as_s3_asset(options = {})
         options.reverse_merge!(:crop => true)
-        
+
         cattr_accessor :asset_options
         self.asset_options = options
 
-        scope :asset_type, lambda {|type| where("SUBSTRING(asset_content_type FROM '.+(?=/)') = '#{sanitize_sql(type)}'") if type.present? }        
-        
+        scope :asset_type, lambda {|type| where("SUBSTRING(asset_content_type FROM '.+(?=/)') = '#{sanitize_sql(type)}'") if type.present? }
+
         before_create :set_asset_created_at if attribute_method?(:asset_created_at)
       end
-      
+
       def transcode_asset(options = {})
         new(options).transcode_asset
       end
     end
-    
+
     # Returns whether the asset has been persisted to S3
     def asset_persisted?
       asset_directory.present? && asset_name.present?
@@ -46,7 +46,7 @@ module S3Asset
     def asset_with_extension(size = :original, options = {})
       # Use original extension for original size
       if size == :original
-        self.asset_name
+        CGI.escape(self.asset_name)
 
       # Special case of video thumbnails created by Zencoder
       elsif video? && (size == :thumb || size == :poster)
@@ -67,11 +67,11 @@ module S3Asset
         end
 
         extension = extension_hash[size] || original_extension
-        
+
         # If the encode option is passed, double escape the filename because jwplayer requires this to play videos with Chinese characters in their filename
-        name_without_extension = CGI.escape(CGI.escape(name_without_extension)) if options[:encode]
-        
-        "#{name_without_extension}.#{extension}"
+        name_without_extension = CGI.escape(name_without_extension) if options[:encode]
+
+        CGI.escape("#{name_without_extension}.#{extension}")
       end
     end
 
@@ -84,12 +84,12 @@ module S3Asset
         else
           "preserve"
         end
-        
-        Zencoder::Job.create(:input => asset_url, 
+
+        Zencoder::Job.create(:input => asset_url,
                              :output => {:public => 1,
-                                         :width => '640', 
-                                         :height => '480', 
-                                         :url => asset_url(:transcoded), 
+                                         :width => '640',
+                                         :height => '480',
+                                         :url => asset_url(:transcoded),
                                          :thumbnails => [{:number => 1, :format => 'jpg', :label => "thumb", :aspect_mode => aspect_mode, :size => thumbnail_size, :base_url => S3_URL + store_dir(:thumb)},
                                                          {:number => 1, :format => 'jpg', :label => "poster", :size => "640x480", :base_url => S3_URL + store_dir(:poster)}]
                                          })
@@ -107,26 +107,26 @@ module S3Asset
         image.sampling_factor "2x1"
 
         s3_bucket.put(store_path(:transcoded), open(image.path), {}, 'public-read')
-        
+
         resize_thumbnail(s3_bucket, image)
-        
+
         if self.class.attribute_method?(:asset_created_at)
           AssetMetadataCache.create(:asset_directory => asset_directory, :asset_created_at => MiniExiftool.new(image.path).date_time_original)
         end
       end
     end
-    
+
     def resize_thumbnails
       if image?
         s3_bucket = RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET'])
 
         # Need to escape because it doesn't do it automatically
         image = MiniMagick::Image.open(URI.escape(asset_url(:transcoded)))
-        
+
         resize_thumbnail(s3_bucket, image)
       end
     end
-    
+
     def resize_thumbnail(s3_bucket, image)
       if self.class.asset_options[:pad] == true
         crop_padded(image, thumbnail_size)
@@ -135,14 +135,14 @@ module S3Asset
       else
         image.resize thumbnail_size
       end
-      
+
       s3_bucket.put(store_path(:thumb), open(image.path), {}, 'public-read')
     end
 
     def set_asset_created_at
       metadata = AssetMetadataCache.find_by_asset_directory(asset_directory)
-      
-      if metadata.present? 
+
+      if metadata.present?
         self.asset_created_at = metadata.asset_created_at
         metadata.delete
       end
@@ -159,14 +159,14 @@ module S3Asset
     def image?
       asset_content_type =~ /image/
     end
-    
+
     def map?
       asset_content_type =~ /google-earth/
     end
-    
+
     private
-    
-    def thumbnail_size 
+
+    def thumbnail_size
       self.class.asset_options[:thumbnail_size] || '300x300'
     end
 
@@ -178,7 +178,7 @@ module S3Asset
         c.gravity "Center"
       end
     end
-    
+
     # Scale an image down and crop away any extra to achieve a certain size.
     # This is handy for creating thumbnails of the same dimensions without
     # changing the aspect ratio.
@@ -189,7 +189,7 @@ module S3Asset
 
       # Grab the width and height of the current image in one go.
       cols, rows = image[:dimensions]
-      
+
       # Only do anything if needs be. Who knows, maybe it's already the exact
       # dimensions we're looking for.
       if(width != cols && height != rows)
@@ -208,7 +208,7 @@ module S3Asset
         end
       end
     end
-    
+
   end
 end
 
