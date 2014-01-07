@@ -14,7 +14,7 @@ intervalID = window.setInterval(function() {
         }
     };
     image.title = "<%= @asset.asset_name %>";
-    image.src = "<%= @asset.asset_url(:thumb, :encode => true) %>";
+    image.src = "<%= @asset.asset_url(:thumb) %>";
 }, 1000);
 
 })();
