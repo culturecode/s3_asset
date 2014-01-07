@@ -6,9 +6,9 @@ Gem::Specification.new do |s|
   s.homepage = 'http://github.com/culturecode/s3_asset'
   s.summary = 'Uploads assets directly to S3 using Plupload, then notifies app server immediately.'
   s.authors = ['Ryan Wallace', 'Nicholas Jakobsen']
-  
+
   s.add_dependency('right_aws')
-  s.add_dependency('mini_magick')
+  s.add_dependency('mini_magick', '~> 3.3')
   s.add_dependency('mini_exiftool')
   s.add_dependency('zencoder')
 end
