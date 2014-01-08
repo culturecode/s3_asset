@@ -27,7 +27,7 @@ namespace :s3_asset do
 
       count += 1
       unless model.constantize.where(:asset_directory => directory).exists?
-        puts key.to_s + " is an orphan. renaming to #{key}_orphan"
+        puts key.to_s + " is an orphan."
         orphan_count += 1
       end
     end
@@ -46,9 +46,9 @@ namespace :s3_asset do
 
       count += 1
       unless model.constantize.where(:asset_directory => directory).exists?
-        puts key.to_s + " is an orphan. moving to orphan/ directory"
+        puts key.to_s + " is an orphan. moving to orphans/ directory"
         orphan_count += 1
-        key.rename('orphan/' + key.to_s)
+        key.rename('orphans/' + key.to_s)
       end
     end
 
