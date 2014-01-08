@@ -20,10 +20,52 @@ namespace :s3_asset do
   task :list_orphans, [:model] => :environment do |t, args|
     model = args[:model]
 
+    count = 0
+    orphan_count = 0
     RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET']).keys('prefix' => model.tableize + '/').each do |key|
       directory = key.to_s.gsub(/#{model.tableize}\/(\d+)\/.+/, '\1')
 
-      puts key.to_s + " DOESN'T EXIST" unless model.constantize.where(:asset_directory => directory).exists?
+      count += 1
+      unless model.constantize.where(:asset_directory => directory).exists?
+        puts key.to_s + " is an orphan. renaming to #{key}_orphan"
+        orphan_count += 1
+      end
+    end
+
+    puts "#{count} S3 assets. #{orphan_count} are orphans."
+  end
+
+  desc "Move all S3 files that aren't linked to an model in the database to the orphan directory (to check if they should really be deleted)"
+  task :move_orphans, [:model] => :environment do |t, args|
+    model = args[:model]
+
+    count = 0
+    orphan_count = 0
+    RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET']).keys('prefix' => model.tableize + '/').each do |key|
+      directory = key.to_s.gsub(/#{model.tableize}\/(\d+)\/.+/, '\1')
+
+      count += 1
+      unless model.constantize.where(:asset_directory => directory).exists?
+        puts key.to_s + " is an orphan. moving to orphan/ directory"
+        orphan_count += 1
+        key.rename('orphan/' + key.to_s)
+      end
+    end
+
+    puts "#{count} S3 assets. #{orphan_count} are orphans."
+  end
+
+  desc "Delete all S3 files that aren't linked to an model in the database"
+  task :delete_orphans, [:model] => :environment do |t, args|
+    model = args[:model]
+
+    RightAws::S3.new(ENV['S3_KEY'], ENV['S3_SECRET']).bucket(ENV['S3_BUCKET']).keys('prefix' => model.tableize + '/').each do |key|
+      directory = key.to_s.gsub(/#{model.tableize}\/(\d+)\/.+/, '\1')
+
+      unless model.constantize.where(:asset_directory => directory).exists?
+        puts key.to_s + " is an orphan. deleting..." unless model.constantize.where(:asset_directory => directory).exists?
+        key.delete
+      end
     end
   end
 end
