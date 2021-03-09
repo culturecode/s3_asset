@@ -1,72 +1,71 @@
 $(document).ready(function() {
     // Counter of number of files still to be uploaded. Used to delay form submission.
     window.files_uploading_count = 0;
-    
+
     // Whether the user has pressed the submit button or not
     window.form_wants_to_submit = false;
-    
+
     // If files are still uploading then save the fact that we want to submit
     // but delay submission until all files are uploaded.
     $('form').submit(function() {
         if (window.files_uploading_count > 0) {
             window.form_wants_to_submit = true;
-            
+
             var submit = $('form').find('input[type=submit]');
-            
+
             submit.val(submit.data('submitting')).attr('disabled', 'disabled');
-            
+
             return false;
         } else {
             return true;
         }
     });
-    
+
     window.multipart_params = {};
 
     $('.s3_field').each(function(index, input) {
         window.multipart_params[input.name] = input.value;
     });
-    
+
     $('.s3_upload_button').each(function(index, input) {
         initializeUploader(input.id);
     });
 });
 
 function initializeUploader(buttonName) {
-  
+
   var uploader = new plupload.Uploader({
-      runtimes : 'flash',
+      runtimes : 'html5',
       browse_button : buttonName,
       button_browse_hover: "button_browse_hover",
       button_browse_active: "button_browse_active",
       url : $('#s3_url').val(),
-      flash_swf_url : '/plupload/plupload.flash.swf',
-      multipart: true,  
+      multipart: true,
       multipart_params : window.multipart_params
   });
 
   uploader.init();
-  
+
   // Make sure we keep the flash shim in the right place when elements are added to the page
   setInterval(function() {
       uploader.refresh();
   }, 500);
 
   uploader.bind('FilesAdded', function(up, files) {
-      window.files_uploading_count += files.length;        
+      window.files_uploading_count += files.length;
       up.start();
   });
 
   uploader.bind('BeforeUpload', function(up, file) {
       file.uid = new Date().getTime();
       $('#' + up.settings.browse_button).trigger({type: 'click', new_id: file.uid});
-      
+
       up.settings.multipart_params['key'] = $('#s3_dir').val() + "/" + file.uid + "/original/${filename}";
       up.settings.multipart_params['Content-Type'] = determineContentType(file.name);
   });
-  
+
   uploader.bind('UploadProgress', function(up, file) {
-      $('[id$=' + file.uid + '_content]').html(file.percent + "%");   
+      $('[id$=' + file.uid + '_content]').html(file.percent + "%");
   });
 
   uploader.bind('Error', function(up, err) {
@@ -78,10 +77,10 @@ function initializeUploader(buttonName) {
       $('[id$=' + file.uid + '_asset_name]').val(file.name);
       $('[id$=' + file.uid + '_visible_asset_name]').html(file.name);
       $('[id$=' + file.uid + '_asset_content_type]').val(determineContentType(file.name));
-      
+
       if ($('#s3_uploaded_callback_object_type')) {
           $('[id$=' + file.uid + '_content]').html("").addClass("resizing");
-          $.post('/s3_assets/asset_uploaded', {object_type: $('#s3_uploaded_callback_object_type').val(), s3_upload: {asset_directory: file.uid, asset_name: file.name, asset_content_type: determineContentType(file.name)}});   
+          $.post('/s3_assets/asset_uploaded', {object_type: $('#s3_uploaded_callback_object_type').val(), s3_upload: {asset_directory: file.uid, asset_name: file.name, asset_content_type: determineContentType(file.name)}});
       } else {
           $('[id$=' + file.uid + '_content]').html("<a href='" + $('#s3_url').val() + $('#s3_dir').val() + "/" + file.uid + "/original/" + file.name + "' target='_blank'>" + file.name + "</a>");
       }
@@ -126,7 +125,7 @@ function determineContentType(fileName) {
     } else if ( extension == "kmz" ) {
 		contentType = "application/vnd.google-earth.kmz";
     }
-    
+
     return contentType;
 }
 
